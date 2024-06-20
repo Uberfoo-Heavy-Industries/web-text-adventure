@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Text Adventure Game with WebAssembly</title>
+    <style>
+        body { font-family: monospace; background-color: #555; color: #ffffff;}
+        #output { white-space: pre-wrap; background-color: black; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; height: 300px; overflow-y: scroll; }
+        #input { padding-right: 10px; background-color: black; border: 1px solid #ccc; color: #ffffff; }
+    </style>
+</head>
+<body>
+    <h1>Text Adventure Game</h1>
+    <div id="output">Welcome to the text adventure game!</div>
+    <input type="text" id="input" placeholder="Enter a command" onkeydown="if(event.key === 'Enter') { sendCommand(); }">
+    <script>
+        var Module = {
+            onRuntimeInitialized: function() {
+                window.handleCommand = function(command) {
+                    console.log("Handling command:", command);
+
+                    var responseLength = 256;
+                    var responsePointer = Module._malloc(responseLength);
+                    var commandPointer = Module._malloc(lengthBytesUTF8(command) + 1);
+
+                    console.log("Allocated memory for command and response.");
+
+                    stringToUTF8(command, commandPointer, lengthBytesUTF8(command) + 1);
+
+                    console.log("Calling WebAssembly function...");
+                    Module._handle_command(commandPointer, responsePointer);
+
+                    var response = UTF8ToString(responsePointer);
+ 
+                    console.log("Received response from WebAssembly:", response);
+ 
+                    Module._free(responsePointer);
+                    Module._free(commandPointer);
+                    return response;
+                };
+
+                window.sendCommand = function() {
+                    var input = document.getElementById('input');
+                    var output = document.getElementById('output');
+                    var command = input.value.trim();
+                    if (command) {
+                        output.innerHTML += `\n> ${command}\n`;
+                        var response = handleCommand(command);
+                        output.innerHTML += `${response}\n`;
+                        output.scrollTop = output.scrollHeight;
+                        input.value = '';
+                    }
+                };
+
+            }
+        };
+    </script>
+    <script src="text-adventure.js"></script>
+</body>
+</html>
